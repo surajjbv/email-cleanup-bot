@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "description": "Local daily Gmail bot: cleans the spam folder (safe one-click unsubscribe + trash) and builds a dashboard of important mail and due dates with a local Qwen model",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "start": "node bot.js",
-    "dry-run": "node bot.js --dry-run",
-    "login": "node login.js",
-    "schedule": "bash schedule.sh install",
-    "test": "node --test test.js"
+    "start": "node --disable-warning=ExperimentalWarning bot.js",
+    "dry": "node --disable-warning=ExperimentalWarning bot.js --dry",
+    "test": "node --disable-warning=ExperimentalWarning --test test.js",
+    "login": "node --disable-warning=ExperimentalWarning bot.js --login",
+    "schedule": "bash kit/schedule.sh install",
+    "unschedule": "bash kit/schedule.sh uninstall"
   },
   "license": "MIT",
   "main": "bot.js"

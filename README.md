@@ -17,9 +17,9 @@ Each email takes about 5–15 s, so a typical run takes a few minutes.
 ## Setup (5 minutes, once)
 
 1. `.env` already holds the Google client from school-reminder-bot. Run `npm run login` and choose **your** mailbox. Google warns that the app is unverified; continue, since it's your own app.
-2. `npm run dry-run -- --open` changes nothing and shows what it *would* trash and unsubscribe.
-3. If the dry run looks right, set `DRY_RUN=false` in `.env`.
-4. `npm run schedule` runs it daily at the time in `config.json` (`run_time`, 07:00 by default). If the Mac is asleep, it runs once it's awake.
+2. `npm run dry -- --open` changes and saves nothing and shows what it *would* trash and unsubscribe.
+3. To try it for a while in report-only mode, set `"dryRun": true` in `config.json`.
+4. `npm run schedule` runs it daily at `runTimes` in `config.json` (07:00). If the Mac is asleep, it runs 10 min after it wakes (up to 10 h late); a failed run is retried every 5 min three times, then every 30 min.
 
 **Run now:** double-click `run-now.command` (it opens the dashboard when it finishes).
 
@@ -30,9 +30,9 @@ Details are in `data/bot.log`.
 | Problem | Fix |
 |---|---|
 | Google access revoked | `npm run login` |
-| Not enough memory for Qwen | Close other apps (e.g. Chrome). Otherwise it falls back to Gemma 4 |
-| Wrong unsubscribe | Resubscribe on the sender's site. Remove the domain from `unsubscribed` in `data/state.json` |
-| Stop the schedule | `bash schedule.sh uninstall` |
+| Not enough memory for Qwen | The run exits and is retried later (LM Studio's guardrail stays on). Close other apps (e.g. Chrome) to free memory |
+| Wrong unsubscribe | Resubscribe on the sender's site. Remove the domain from the `unsubscribed` key in `data/bot.db` |
+| Stop the schedule | `npm run unschedule` |
 
 ## Safeguards
 
@@ -41,6 +41,6 @@ Details are in `data/bot.log`.
 - Each sender domain is unsubscribed only once.
 - A due date is kept only if the model quotes the email's own words for it.
 - The dashboard escapes all email text and blocks scripts (CSP), so a crafted email can't run code in it.
-- The model is unloaded after each run, and LM Studio's memory guardrails are respected.
+- The model is shared with the other bots (lease protocol in `kit/llm.js`) and unloaded when the last one is done; LM Studio's memory guardrails are respected.
 
-Code: `bot.js` (run), `gmail.js`, `lib.js` (rules, model), `dashboard.js`, `login.js`, `schedule.sh`; daily run time in `config.json`. Tests: `npm test`.
+Code: `bot.js` (collect → decide → act), `sources/gmail.js`, `rules.js`, `prompts/`, `dashboard.js`; shared code in `kit/` (from botkit). Settings: `config.json`; the Google login: `.env`. Tests: `npm test`.

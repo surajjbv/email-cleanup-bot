@@ -1,25 +1,10 @@
 // Gmail API (gmail.modify: read + move to Trash) and the RFC 8058 one-click unsubscribe POST.
-import { config, htmlToText, log } from './lib.js';
+import { googleApi } from '../kit/google.js';
+import { htmlToText } from '../rules.js';
 
 const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const unb64 = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
-
-let accessToken;
-async function google(url, init = {}) {
-  if (!accessToken) {
-    if (!config.googleRefreshToken) throw new Error('GOOGLE_REFRESH_TOKEN missing: run `npm run login`');
-    const res = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      body: new URLSearchParams({ client_id: config.googleClientId, client_secret: config.googleClientSecret, refresh_token: config.googleRefreshToken, grant_type: 'refresh_token' }),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(`Google access was revoked or expired (${body.error}): run \`npm run login\``); // never log the token
-    accessToken = body.access_token;
-  }
-  const res = await fetch(url, { ...init, headers: { Authorization: `Bearer ${accessToken}`, ...init.headers } });
-  if (!res.ok) throw new Error(`Google ${res.status} for ${url.split('?')[0]}: ${(await res.text()).slice(0, 150)}`);
-  return res.json();
-}
+const google = googleApi();
 
 /** The mailbox's address (for the dashboard header). */
 export const profileEmail = async () => (await google(`${GMAIL}/profile`)).emailAddress;
@@ -66,7 +51,7 @@ export async function trash(ids) {
 }
 
 /** RFC 8058 one-click unsubscribe: a single POST, no redirects followed, no page opened. Returns true on 2xx/3xx. */
-export async function oneClickUnsubscribe(url) {
+export async function oneClickUnsubscribe(url, log) {
   try {
     const res = await fetch(url, {
       method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(15000),

@@ -1,4 +1,10 @@
 {
-  "run_time": "07:00",
-  "_comment": "Daily run time, 24-hour local (HH:MM). Only used by schedule.sh when a schedule is installed; run-now.command ignores it."
+  "_comment": "Public settings (the Google login lives in .env). Defaults and validation: bot.js and kit/config.js. dryRun true = report only, nothing changed or saved.",
+  "model": "qwen3.8-27b-mlx",
+  "timezone": "Asia/Kolkata",
+  "runTimes": ["07:00"],
+  "dryRun": false,
+  "firstRunHours": 48,
+  "maxInbox": 60,
+  "maxSpam": 300
 }

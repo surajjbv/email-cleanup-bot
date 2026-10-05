@@ -1,6 +1,6 @@
 // Renders data/dashboard.html: one self-contained page, no scripts (CSP forbids them), light + dark.
 // All email text is untrusted, so every value goes through esc().
-import { localDate } from './lib.js';
+import { localDate } from './rules.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const gmailLink = (id) => `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(id)}`;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { renderDashboard } from './dashboard.js';
-import { checkDue, dkimAligned, fromDomain, oneClickUrl } from './lib.js';
+import { checkDue, dkimAligned, fromDomain, oneClickUrl } from './rules.js';
 
 const H = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k.toLowerCase(), v]));
 
