@@ -1,0 +1,17 @@
+{
+  "name": "email-cleanup-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local daily Gmail bot: cleans the spam folder (safe one-click unsubscribe + trash) and builds a dashboard of important mail and due dates with a local Qwen model",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node bot.js",
+    "dry-run": "node bot.js --dry-run",
+    "login": "node login.js",
+    "schedule": "bash schedule.sh install",
+    "test": "node --test test.js"
+  },
+  "license": "MIT",
+  "main": "bot.js"
+}

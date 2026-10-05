@@ -1,0 +1,4 @@
+{
+  "run_time": "07:00",
+  "_comment": "Daily run time, 24-hour local (HH:MM). Only used by schedule.sh when a schedule is installed; run-now.command ignores it."
+}

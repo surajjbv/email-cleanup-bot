@@ -1,0 +1,8 @@
+# Secrets (only .env.example is committed)
+.env
+.env.*
+!.env.example
+
+# Local state: email summaries, dashboard, logs
+data/
+.DS_Store
