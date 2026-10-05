@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { renderDashboard } from './dashboard.js';
-import { checkDue, dkimAligned, fromDomain, oneClickUrl } from './rules.js';
+import { checkDue, classifySpam, dkimAligned, fromDomain, oneClickUrl, renderDashboard, summarizeMail } from './rules.js';
+import { BadReply } from './kit.js';
 
 const H = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k.toLowerCase(), v]));
 
@@ -49,4 +49,13 @@ test('dashboard escapes email content', () => {
   });
   assert.ok(!html.includes('<img'));
   assert.ok(html.includes("default-src 'none'"));
+});
+
+test('model calls: one retry on an unusable reply; due date must be quoted from the email', async () => {
+  const replies = [new BadReply('not JSON'), { important: true, category: 'bill', priority: 'high', summary: 's', action: 'Pay', due_date: '2026-10-15', date_source: 'by 15 Oct' }];
+  const ask = async () => { const r = replies.shift(); if (r instanceof Error) throw r; return r; };
+  const s = await summarizeMail({ ms: Date.now(), from: 'a@b.c', subject: 'Bill', text: 'Pay by 15 Oct please.' }, '2026-10-05', ask);
+  assert.equal(s.due_date, '2026-10-15');
+  const v = await classifySpam([{ id: 'x', from: 'a@shop.com', subject: 'Sale', text: 'hi' }], async () => ({ results: [{ n: 1, kind: 'marketing', reason: 'shop' }] }));
+  assert.deepEqual(v.get('x'), { kind: 'marketing', reason: 'shop' });
 });

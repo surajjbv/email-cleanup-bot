@@ -1,6 +1,6 @@
 // Gmail API (gmail.modify: read + move to Trash) and the RFC 8058 one-click unsubscribe POST.
-import { googleApi } from '../kit/google.js';
-import { htmlToText } from '../rules.js';
+import { googleApi } from './kit.js';
+import { htmlToText } from './rules.js';
 
 const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const unb64 = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');

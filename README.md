@@ -1,45 +1,54 @@
 # email-cleanup-bot
 
-**Every morning: your spam folder is emptied, and you get a dashboard of the mail that matters and what's due.**
+Once a day: empties the Gmail spam folder (into Trash, recoverable for 30 days), unsubscribes from genuine
+marketing senders the safe way, and writes a dashboard (`data/dashboard.html`) of the mail that matters and what's
+due. The mail is read by a local model (Qwen3.8 27B in LM Studio); nothing goes to the cloud.
 
-## What it does
+## How it works
 
-- **Spam cleanup.** Every message in Spam is moved to Trash (recoverable for 30 days; nothing is deleted permanently).
-- **Safe unsubscribe.** It unsubscribes only from real businesses, never from scammers (unsubscribing from real spam tells them your address works). All three must hold:
-  1. the mail supports one-click unsubscribe (RFC 8058, a single POST; no web page is opened),
-  2. Gmail verified the sender's domain (DKIM),
-  3. the local model judges it legitimate marketing, not phishing or a scam.
-- **Important mail.** New inbox mail (except Promotions, Social, Forums) is read by **Qwen3.8 27B** in LM Studio, on this Mac. Nothing goes to the cloud. You get a one-line summary, an action, and the due date, but only if the email states that date.
-- **Dashboard.** `data/dashboard.html` shows what's due (overdue ones too), important mail from the last 14 days, and the spam log. You also get a macOS notification after each run.
+1. **Collect**: Gmail spam (up to `maxSpam`) and new inbox mail since the last run (not Promotions, Social, Forums).
+2. **Decide**: the model triages spam (marketing / scam / other) and summarises each inbox mail (important?
+   category, priority, one-line summary, action, due date), two requests at a time. Code-side rules decide:
+   - unsubscribe only if the mail has an RFC 8058 one-click header with an https link (a single POST, no page
+     opened), Gmail verified the sender's DKIM signature, and the model says marketing (unsubscribing from real
+     spam would confirm your address);
+   - a due date is kept only if the email's own words for it are quoted.
+3. **Act**: unsubscribe (once per domain), move all spam to Trash, update the dashboard, macOS notification.
 
-Each email takes about 5–15 s, so a typical run takes a few minutes.
+The model is shared with the other bots; if it can't be had (busy, or too little memory for LM Studio's
+guardrail), the run is retried. Google scope `gmail.modify`: read and move to Trash, never send or delete.
 
-## Setup (5 minutes, once)
+## Setup (macOS, Node 24+, LM Studio with Qwen3.8 27B)
 
-1. `.env` already holds the Google client from school-reminder-bot. Run `npm run login` and choose **your** mailbox. Google warns that the app is unverified; continue, since it's your own app.
-2. `npm start -- --open` runs it once and opens the dashboard.
-3. `npm run schedule` runs it daily at `runTimes` in `config.json` (07:00). If the Mac is asleep, it runs 10 min after it wakes (up to 10 h late); a failed run is retried every 5 min three times, then every 30 min.
+```
+cp .env.example .env    # a Google Desktop OAuth client (Gmail API on): ID and secret
+npm run login           # sign in with the mailbox to clean; saves the refresh token into .env
+npm start -- --open     # run now and open the dashboard
+npm run schedule        # daily at runTimes from now on (npm run unschedule to stop)
+```
+Settings: `config.json` (`runTimes`, `timezone`, `firstRunHours`, `maxInbox`, `maxSpam`, `model`).
+Personal values: `.env` only (gitignored). Run now: double-click `run-now.command` (opens the dashboard).
 
-**Run now:** double-click `run-now.command` (it opens the dashboard when it finishes).
+## Files
 
-## If something goes wrong
+```
+bot.js            the run: collect → decide → act
+sources.js        Gmail API and the one-click unsubscribe POST
+rules.js          prompts, schemas, unsubscribe and due-date rules, dashboard HTML (pure, tested)
+test.js           tests for rules.js           kit.test.js   tests for kit.js
+kit.js            shared kit: config, log, store, model sharing, Google login, run, scheduler
+config.json       public settings              .env.example  personal values template
+pii-check.sh      personal-data gate before a commit: bash pii-check.sh && git commit ...
+run-now.command   double-click = npm start     package.json  npm start · test · login · schedule · unschedule
+data/             (gitignored) bot.db state · bot.log log · run.out scheduler · dashboard.html
+```
 
-Details are in `data/bot.log`.
+## When something goes wrong
 
-| Problem | Fix |
-|---|---|
-| Google access revoked | `npm run login` |
-| Not enough memory for Qwen | The run exits and is retried later (LM Studio's guardrail stays on). Close other apps (e.g. Chrome) to free memory |
-| Wrong unsubscribe | Resubscribe on the sender's site. Remove the domain from the `unsubscribed` key in `data/bot.db` |
-| Stop the schedule | `npm run unschedule` |
+A failure shows a macOS notification and is listed on the dashboard. Details: `data/bot.log` (each step,
+`FAILED during …` with the error) and `data/run.out` (each scheduled try). Google access revoked: `npm run login`.
+A wrong unsubscribe: resubscribe on the sender's site. `npm test` checks the rules and the kit.
 
-## Safeguards
+## License
 
-- Google scope `gmail.modify`: it can read mail and move it to Trash, but it can't send mail or delete permanently.
-- It never unsubscribes by email and never opens unsubscribe pages. It also refuses links to IP addresses or localhost.
-- Each sender domain is unsubscribed only once.
-- A due date is kept only if the model quotes the email's own words for it.
-- The dashboard escapes all email text and blocks scripts (CSP), so a crafted email can't run code in it.
-- The model is shared with the other bots (lease protocol in `kit/llm.js`) and unloaded when the last one is done; LM Studio's memory guardrails are respected.
-
-Code: `bot.js` (collect → decide → act), `sources/gmail.js`, `rules.js`, `prompts/`, `dashboard.js`; shared code in `kit/` (from botkit). Settings: `config.json`; the Google login: `.env`. Tests: `npm test`.
+MIT

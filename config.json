@@ -1,5 +1,5 @@
 {
-  "_comment": "Public settings (the Google login lives in .env). Defaults and validation: bot.js and kit/config.js.",
+  "_comment": "Public settings (the Google login lives in .env). Defaults and validation: bot.js and kit.js.",
   "model": "qwen3.8-27b-mlx",
   "timezone": "Asia/Kolkata",
   "runTimes": ["07:00"],
