@@ -1,8 +1,9 @@
-# Secrets (only .env.example is committed)
+# Personal values (only .env.example is committed)
 .env
 .env.*
 !.env.example
 
-# Local state: email summaries, dashboard, logs
+# Local state: database, logs, WhatsApp login, caches
 data/
+node_modules/
 .DS_Store

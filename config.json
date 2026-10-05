@@ -1,9 +1,8 @@
 {
-  "_comment": "Public settings (the Google login lives in .env). Defaults and validation: bot.js and kit/config.js. dryRun true = report only, nothing changed or saved.",
+  "_comment": "Public settings (the Google login lives in .env). Defaults and validation: bot.js and kit/config.js.",
   "model": "qwen3.8-27b-mlx",
   "timezone": "Asia/Kolkata",
   "runTimes": ["07:00"],
-  "dryRun": false,
   "firstRunHours": 48,
   "maxInbox": 60,
   "maxSpam": 300

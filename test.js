@@ -42,8 +42,8 @@ test('checkDue keeps only dates quoted from the email', () => {
 test('dashboard escapes email content', () => {
   const evil = '<img src=x onerror=alert(1)>';
   const html = renderDashboard({
-    run: { at: Date.now(), account: 'me@example.com', dryRun: true, model: 'm', inboxCount: 1, newImportant: 1, errors: [], seconds: 1,
-      spam: [{ from: evil, domain: 'x.com', subject: evil, action: 'would-trash', reason: '' }],
+    run: { at: Date.now(), account: 'me@example.com', model: 'm', inboxCount: 1, newImportant: 1, errors: [], seconds: 1,
+      spam: [{ from: evil, domain: 'x.com', subject: evil, action: 'trashed', reason: '' }],
       important: [{ id: 'a"b', ms: Date.now(), from: evil, subject: evil, summary: evil, action: evil, category: 'bill', priority: 'high', isNew: true }] },
     dueItems: [], runs: [],
   });

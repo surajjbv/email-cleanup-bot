@@ -17,9 +17,8 @@ Each email takes about 5–15 s, so a typical run takes a few minutes.
 ## Setup (5 minutes, once)
 
 1. `.env` already holds the Google client from school-reminder-bot. Run `npm run login` and choose **your** mailbox. Google warns that the app is unverified; continue, since it's your own app.
-2. `npm run dry -- --open` changes and saves nothing and shows what it *would* trash and unsubscribe.
-3. To try it for a while in report-only mode, set `"dryRun": true` in `config.json`.
-4. `npm run schedule` runs it daily at `runTimes` in `config.json` (07:00). If the Mac is asleep, it runs 10 min after it wakes (up to 10 h late); a failed run is retried every 5 min three times, then every 30 min.
+2. `npm start -- --open` runs it once and opens the dashboard.
+3. `npm run schedule` runs it daily at `runTimes` in `config.json` (07:00). If the Mac is asleep, it runs 10 min after it wakes (up to 10 h late); a failed run is retried every 5 min three times, then every 30 min.
 
 **Run now:** double-click `run-now.command` (it opens the dashboard when it finishes).
 

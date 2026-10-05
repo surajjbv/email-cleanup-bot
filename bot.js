@@ -1,6 +1,5 @@
 // One run: clean the spam folder, summarise new important inbox mail, write data/dashboard.html.
-//   npm start            (config.json "dryRun" decides whether anything is changed)
-//   npm run dry          (never changes or saves anything)
+//   npm start
 //   npm start -- --open  (also opens the dashboard)
 //   npm run login        (Google sign-in for the mailbox to clean)
 import { execFile } from 'node:child_process';
@@ -73,7 +72,7 @@ runBot({
   env: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
   optionalEnv: ['GOOGLE_REFRESH_TOKEN'],
   importJson: (state, store) => { for (const k of ['lastRunMs', 'unsubscribed', 'important', 'dueItems', 'runs']) if (k in state) store.set(k, state[k]); },
-  async main({ cfg, store, log, dry, args }) {
+  async main({ cfg, store, log, args }) {
     // gmail.modify = read mail and move it to Trash. It can't send mail or delete permanently.
     if (args.includes('--login')) return googleLogin(cfg.root, ['gmail.modify'], 'the Gmail account to clean up');
     const started = Date.now();
@@ -118,12 +117,11 @@ runBot({
     const doneDomains = new Set();
     for (const m of spam) {
       const v = verdicts.get(m.id);
-      let action = dry ? 'would-trash' : 'trashed';
+      let action = 'trashed';
       let reason = v?.reason || (!m.url ? 'no one-click unsubscribe' : !m.dkim ? 'sender not verified (DKIM)' : '');
       if (unsubscribed[m.domain]) { action = 'already-unsubscribed'; reason = `unsubscribed ${unsubscribed[m.domain]}`; }
       else if (v?.kind === 'marketing' && m.url && m.dkim) {
-        if (dry) action = 'would-unsubscribe';
-        else if (doneDomains.has(m.domain)) action = 'unsubscribed';
+        if (doneDomains.has(m.domain)) action = 'unsubscribed';
         else {
           const ok = await oneClickUnsubscribe(m.url, log);
           action = ok ? 'unsubscribed' : 'unsubscribe-failed';
@@ -132,12 +130,12 @@ runBot({
       } else if (v) reason = `${v.kind}: ${v.reason}`;
       spamReport.push({ from: m.from, domain: m.domain, subject: m.subject, action, reason });
     }
-    if (!dry && spam.length) {
+    if (spam.length) {
       try { await trash(spam.map((m) => m.id)); log.info(`moved ${spam.length} spam messages to Trash`); }
       catch (err) { errors.push(`Trash failed: ${err.message}`); log.error(errors.at(-1)); }
     }
 
-    // save (rolled back in a dry run) + dashboard
+    // save + dashboard
     const keep = (list, item) => [...list.filter((x) => x.id !== item.id), item];
     let important = store.get('important') ?? [];
     let dueItems = store.get('dueItems') ?? [];
@@ -155,16 +153,16 @@ runBot({
     if (inboxOk) store.set('lastRunMs', started);
 
     const run = {
-      at: started, account, dryRun: dry, model: llm.usage().calls ? cfg.model : '-', spam: spamReport, inboxCount: inbox.length,
+      at: started, account, model: llm.usage().calls ? cfg.model : '-', spam: spamReport, inboxCount: inbox.length,
       important: important.map((x) => ({ ...x, isNew: summaries.some((s) => s.id === x.id) })),
       newImportant: summaries.length, errors, seconds: (Date.now() - started) / 1000,
     };
     const file = path.join(cfg.data, 'dashboard.html');
     fs.writeFileSync(file, renderDashboard({ run, dueItems, runs }));
     const dueSoon = dueItems.filter((d) => d.due_date >= today && d.due_date <= localDate(started + 7 * DAY)).length;
-    const line = `${summaries.length} important, ${dueSoon} due this week, ${spam.length} spam ${dry ? 'found (dry run)' : 'trashed'}`;
+    const line = `${summaries.length} important, ${dueSoon} due this week, ${spam.length} spam trashed`;
     log.done(`${line} · dashboard: ${file}`);
-    if (!dry) notify('Inbox brief', line);
+    notify('Inbox brief', line);
     if (args.includes('--open')) execFile('open', [file]);
     if (errors.length) throw new Error(`${errors.length} problem(s), see the dashboard: ${errors[0]}`);
   },

@@ -12,9 +12,7 @@ const whenLabel = (n) => (n < 0 ? `${-n}d overdue` : n === 0 ? 'Today' : n === 1
 
 const ACTION = {
   unsubscribed: ['Unsubscribed + trashed', 'ok'],
-  'would-unsubscribe': ['Would unsubscribe + trash', 'ok'],
   trashed: ['Trashed', 'muted'],
-  'would-trash': ['Would trash', 'muted'],
   'unsubscribe-failed': ['Unsubscribe failed, trashed', 'warn'],
   'already-unsubscribed': ['Already unsubscribed, trashed', 'muted'],
 };
@@ -24,7 +22,7 @@ export function renderDashboard({ run, dueItems, runs }) {
   const due = dueItems.filter((d) => daysUntil(d.due_date, today) >= -3).sort((a, b) => a.due_date.localeCompare(b.due_date));
   const dueWeek = due.filter((d) => daysUntil(d.due_date, today) <= 7).length;
   const important = [...run.important].sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 3) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 3) || b.ms - a.ms);
-  const unsub = run.spam.filter((s) => ['unsubscribed', 'would-unsubscribe'].includes(s.action)).length;
+  const unsub = run.spam.filter((s) => s.action === 'unsubscribed').length;
   const hist = runs.slice(-14);
   const histMax = Math.max(1, ...hist.map((r) => r.spamCount));
 
@@ -66,7 +64,7 @@ export function renderDashboard({ run, dueItems, runs }) {
 main{max-width:1080px;margin:0 auto;padding:28px 16px 64px}a{color:inherit;text-decoration-color:var(--line);text-underline-offset:3px}a:hover{color:var(--accent)}
 header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px;margin-bottom:24px}
 h1{font-size:28px;margin:0;letter-spacing:-.02em}h2{font-size:17px;margin:36px 0 12px}h3{font-size:15px;margin:8px 0 2px}
-.meta{color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;background:var(--warn-bg);color:var(--warn)}
+.meta{color:var(--muted);font-size:13px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}.tile-label{font-size:13px;color:var(--muted)}.tile-value{font-size:30px;font-weight:650;font-variant-numeric:tabular-nums}.tile-note{font-size:12px;color:var(--muted)}
 ul.dues{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px}
@@ -88,12 +86,12 @@ footer{margin-top:40px;font-size:12px;color:var(--muted)}
 @media (max-width:560px){.due{flex-direction:column;gap:2px}h1{font-size:24px}}
 </style></head><body><main>
 <header><div><div class="meta">${esc(run.account)}</div><h1>Inbox brief · ${esc(fmtDate(today))}</h1></div>
-<div>${run.dryRun ? '<span class="badge">Dry run: nothing was changed</span>' : ''}</div></header>
+</header>
 <section class="tiles">
 ${tile('Due in 7 days', dueWeek, `${due.length} upcoming in total`)}
 ${tile('New important mail', run.newImportant, `of ${run.inboxCount} read since last run`)}
-${tile(run.dryRun ? 'Spam to trash' : 'Spam trashed', run.spam.length, 'moved to Trash, recoverable 30 days')}
-${tile(run.dryRun ? 'To unsubscribe' : 'Unsubscribed', unsub, 'verified senders, one-click only')}
+${tile('Spam trashed', run.spam.length, 'moved to Trash, recoverable 30 days')}
+${tile('Unsubscribed', unsub, 'verified senders, one-click only')}
 </section>
 <h2>Due dates</h2><ul class="dues">${dueRows}</ul>
 <h2>Important emails <span class="meta">last 14 days</span></h2><div class="cards">${cards}</div>
