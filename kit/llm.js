@@ -151,20 +151,31 @@ export function check(schema, v, at = 'reply') {
  * changing input in `user`; `images` are PNG/JPEG Buffers.
  */
 export async function ask({ system, user, schema, images = [], maxTokens = 1000, name = 'answer' }) {
-  const model = await acquire();
   const content = images.length
     ? [{ type: 'text', text: user }, ...images.map((b) => ({ type: 'image_url', image_url: { url: `data:image/${b[0] === 0xff ? 'jpeg' : 'png'};base64,${b.toString('base64')}` } }))]
     : user;
-  const t = Date.now();
-  const res = await fetch(`${API}/v1/chat/completions`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(300000),
-    body: JSON.stringify({
-      model, temperature: 0, max_tokens: maxTokens,
-      messages: [{ role: 'system', content: system }, { role: 'user', content }, { role: 'assistant', content: NO_THINK }],
-      response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
-    }),
-  }).finally(() => { stats.calls++; stats.ms += Date.now() - t; });
-  if (!res.ok) throw new Error(`LM Studio ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const post = async () => {
+    const model = await acquire();
+    const t = Date.now();
+    return fetch(`${API}/v1/chat/completions`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(300000),
+      body: JSON.stringify({
+        model, temperature: 0, max_tokens: maxTokens,
+        messages: [{ role: 'system', content: system }, { role: 'user', content }, { role: 'assistant', content: NO_THINK }],
+        response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
+      }),
+    }).finally(() => { stats.calls++; stats.ms += Date.now() - t; });
+  };
+  let res = await post();
+  if (!res.ok) {
+    const text = await res.text();
+    // An app outside the protocol may unload the copy we were reusing: take the model again, once.
+    if (!/no models loaded|model .*not (found|loaded)/i.test(text)) throw new Error(`LM Studio ${res.status}: ${text.slice(0, 200)}`);
+    opts.log.warn('the model was unloaded under us; taking it again');
+    pending = null;
+    res = await post();
+    if (!res.ok) throw new Error(`LM Studio ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  }
   const choice = (await res.json()).choices?.[0];
   let obj;
   try { obj = JSON.parse(choice?.message?.content); } catch {
