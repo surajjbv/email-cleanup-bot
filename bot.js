@@ -5,7 +5,7 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { googleLogin, llm, notify, runBot } from './kit.js';
-import { checkDue, classifySpam, dkimAligned, fromDomain, localDate, oneClickUrl, renderDashboard, summarizeMail } from './rules.js';
+import { classifySpam, dkimAligned, fromDomain, localDate, oneClickUrl, renderDashboard, summarizeMail } from './rules.js';
 import { getMail, oneClickUnsubscribe, profileEmail, searchIds, trash } from './sources.js';
 
 const DAY = 86400000;
