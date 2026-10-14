@@ -14,7 +14,9 @@ export async function searchIds(q, max) {
   const ids = [];
   let page = '';
   do {
-    const r = await google(`${GMAIL}/messages?maxResults=${Math.min(100, max)}&includeSpamTrash=${/in:spam/.test(q)}&q=${encodeURIComponent(q)}${page ? `&pageToken=${page}` : ''}`);
+    const r = await google(
+      `${GMAIL}/messages?maxResults=${Math.min(100, max)}&includeSpamTrash=${/in:spam/.test(q)}&q=${encodeURIComponent(q)}${page ? `&pageToken=${page}` : ''}`,
+    );
     ids.push(...(r.messages || []).map((m) => m.id));
     page = r.nextPageToken;
   } while (page && ids.length < max);
@@ -30,16 +32,32 @@ export async function getMail(id) {
     headers[k] = headers[k] ? `${headers[k]}; ${h.value}` : h.value;
   }
   const parts = [];
-  const walk = (p) => { parts.push(p); (p.parts || []).forEach(walk); };
+  const walk = (p) => {
+    parts.push(p);
+    (p.parts || []).forEach(walk);
+  };
   walk(m.payload);
   const body = (type) => parts.find((p) => p.mimeType === type && p.body?.data);
   const plain = body('text/plain');
   const html = body('text/html');
-  const text = plain ? unb64(plain.body.data).toString() : html ? htmlToText(unb64(html.body.data).toString()) : m.snippet || '';
+  const text = plain
+    ? unb64(plain.body.data).toString()
+    : html
+      ? htmlToText(unb64(html.body.data).toString())
+      : m.snippet || '';
   return {
-    id, threadId: m.threadId, ms: Number(m.internalDate), labels: m.labelIds || [], headers,
-    from: headers.from || '', subject: headers.subject || '(no subject)',
-    text: text.split(/^On .{5,200}?wrote:\s*$/ms)[0].replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim(),
+    id,
+    threadId: m.threadId,
+    ms: Number(m.internalDate),
+    labels: m.labelIds || [],
+    headers,
+    from: headers.from || '',
+    subject: headers.subject || '(no subject)',
+    text: text
+      .split(/^On .{5,200}?wrote:\s*$/ms)[0]
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n+/g, '\n')
+      .trim(),
   };
 }
 
@@ -54,8 +72,11 @@ export async function trash(ids) {
 export async function oneClickUnsubscribe(url, log) {
   try {
     const res = await fetch(url, {
-      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(15000),
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click',
+      method: 'POST',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'List-Unsubscribe=One-Click',
     });
     return res.status >= 200 && res.status < 400;
   } catch (err) {

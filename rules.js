@@ -16,13 +16,21 @@ export const localDate = (ms = Date.now()) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const htmlToText = (html) => html
-  .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, '')
-  .replace(/<br\s*\/?>|<\/(p|div|tr|li|h\d)>/gi, '\n')
-  .replace(/<[^>]+>/g, ' ')
-  .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-  .replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, '"').replace(/&#\d+;|&zwnj;|‌|͏/g, '')
-  .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+export const htmlToText = (html) =>
+  html
+    .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<br\s*\/?>|<\/(p|div|tr|li|h\d)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;|&rsquo;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&#\d+;|&zwnj;|‌|͏/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s*\n+/g, '\n')
+    .trim();
 
 /** Domain of the From address: 'Shop <news@mail.shop.com>' -> 'mail.shop.com'. */
 export const fromDomain = (from) => (from.match(/@([\w.-]+)>?\s*$/)?.[1] || '').toLowerCase();
@@ -36,14 +44,18 @@ export function oneClickUrl(headers) {
     const host = new URL(url).hostname;
     if (net.isIP(host.replace(/^\[|\]$/g, '')) || host === 'localhost' || !host.includes('.')) return null; // no IPs / local hosts
     return url;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** True if Gmail verified a DKIM signature from the From domain (or its parent domain). */
 export function dkimAligned(headers, from) {
   const domain = fromDomain(from);
   if (!domain) return false;
-  const signers = [...(headers['authentication-results'] || '').matchAll(/dkim=pass[^;]*?header\.(?:i|d)=@?([\w.-]+)/gi)].map((m) => m[1].toLowerCase());
+  const signers = [
+    ...(headers['authentication-results'] || '').matchAll(/dkim=pass[^;]*?header\.(?:i|d)=@?([\w.-]+)/gi),
+  ].map((m) => m[1].toLowerCase());
   // Same domain, or one is a subdomain of the other (news@shop.com signed by mail.shop.com). A shared
   // suffix like .co.in is not enough, and neither is a signature from the mailing provider's own domain.
   return signers.some((s) => domain === s || domain.endsWith(`.${s}`) || s.endsWith(`.${domain}`));
@@ -54,7 +66,10 @@ export function checkDue(obj, mail) {
   const src = (obj.date_source || '').trim().toLowerCase();
   const hay = `${mail.subject}\n${mail.text}`.toLowerCase().replace(/\s+/g, ' ');
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(obj.due_date || '') && !Number.isNaN(Date.parse(obj.due_date));
-  if (!valid || !src || !hay.includes(src.replace(/\s+/g, ' '))) { obj.due_date = null; obj.date_source = null; }
+  if (!valid || !src || !hay.includes(src.replace(/\s+/g, ' '))) {
+    obj.due_date = null;
+    obj.date_source = null;
+  }
   return obj;
 }
 
@@ -76,18 +91,51 @@ Rules:
 - due_date only if the email itself states a deadline, payment date, appointment or event date; copy those exact words into date_source. Never guess. Resolve relative dates against the email date.
 - priority high = money/legal/security consequences or due within 3 days.`;
 
-const SPAM_SCHEMA = { type: 'object', additionalProperties: false, required: ['results'], properties: { results: { type: 'array', items: {
-  type: 'object', additionalProperties: false, required: ['n', 'kind', 'reason'],
-  properties: { n: { type: 'integer' }, kind: { enum: ['marketing', 'scam', 'other'] }, reason: { type: 'string' } } } } } };
-const INBOX_SCHEMA = { type: 'object', additionalProperties: false, required: ['important', 'category', 'priority', 'summary', 'action', 'due_date', 'date_source'], properties: {
-  important: { type: 'boolean' },
-  category: { enum: ['bill', 'finance', 'work', 'personal', 'travel', 'school', 'health', 'account', 'delivery', 'other'] },
-  priority: { enum: ['high', 'medium', 'low'] },
-  summary: { type: 'string' }, action: { type: ['string', 'null'] }, due_date: { type: ['string', 'null'] }, date_source: { type: ['string', 'null'] } } };
+const SPAM_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['results'],
+  properties: {
+    results: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['n', 'kind', 'reason'],
+        properties: {
+          n: { type: 'integer' },
+          kind: { enum: ['marketing', 'scam', 'other'] },
+          reason: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+const INBOX_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['important', 'category', 'priority', 'summary', 'action', 'due_date', 'date_source'],
+  properties: {
+    important: { type: 'boolean' },
+    category: {
+      enum: ['bill', 'finance', 'work', 'personal', 'travel', 'school', 'health', 'account', 'delivery', 'other'],
+    },
+    priority: { enum: ['high', 'medium', 'low'] },
+    summary: { type: 'string' },
+    action: { type: ['string', 'null'] },
+    due_date: { type: ['string', 'null'] },
+    date_source: { type: ['string', 'null'] },
+  },
+};
 
 /** The model's answer; one more try if it was unusable, then null. */
 async function askTwice(ask, q) {
-  for (let i = 0; i < 2; i++) try { return await ask({ maxTokens: 1200, ...q }); } catch (e) { if (!(e instanceof BadReply)) throw e; }
+  for (let i = 0; i < 2; i++)
+    try {
+      return await ask({ maxTokens: 1200, ...q });
+    } catch (e) {
+      if (!(e instanceof BadReply)) throw e;
+    }
   return null;
 }
 
@@ -96,7 +144,9 @@ export async function classifySpam(mails, ask) {
   const out = new Map();
   for (let i = 0; i < mails.length; i += 8) {
     const batch = mails.slice(i, i + 8);
-    const user = batch.map((m, j) => `#${j + 1}\nFrom: ${m.from}\nSubject: ${m.subject}\nText: ${m.text.slice(0, 800)}`).join('\n---\n');
+    const user = batch
+      .map((m, j) => `#${j + 1}\nFrom: ${m.from}\nSubject: ${m.subject}\nText: ${m.text.slice(0, 800)}`)
+      .join('\n---\n');
     const obj = await askTwice(ask, { system: SPAM_SYSTEM, user, schema: SPAM_SCHEMA, name: 'spam' });
     for (const r of obj?.results || []) {
       const m = batch[Number(r.n) - 1];
@@ -116,11 +166,20 @@ export async function summarizeMail(mail, today, ask) {
 // ── the dashboard: data/dashboard.html, one self-contained page, no scripts (CSP forbids them), light + dark.
 // All email text is untrusted, so every value goes through esc().
 const DAY = 86400000;
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const esc = (s) =>
+  String(s ?? '').replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
 const gmailLink = (id) => `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(id)}`;
-const sender = (from) => from.replace(/<[^>]*>/, '').replace(/"/g, '').trim() || from;
+const sender = (from) =>
+  from
+    .replace(/<[^>]*>/, '')
+    .replace(/"/g, '')
+    .trim() || from;
 const daysUntil = (date, today) => Math.round((Date.parse(date) - Date.parse(today)) / DAY);
-const fmtDate = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtDate = (d) =>
+  new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const whenLabel = (n) => (n < 0 ? `${-n}d overdue` : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `in ${n} days`);
 
 const ACTION = {
@@ -132,37 +191,58 @@ const ACTION = {
 
 export function renderDashboard({ run, dueItems, runs }) {
   const today = localDate(run.at);
-  const due = dueItems.filter((d) => daysUntil(d.due_date, today) >= -3).sort((a, b) => a.due_date.localeCompare(b.due_date));
+  const due = dueItems
+    .filter((d) => daysUntil(d.due_date, today) >= -3)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date));
   const dueWeek = due.filter((d) => daysUntil(d.due_date, today) <= 7).length;
-  const important = [...run.important].sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] ?? 3) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 3) || b.ms - a.ms);
+  const important = [...run.important].sort(
+    (a, b) =>
+      (({ high: 0, medium: 1, low: 2 })[a.priority] ?? 3) - ({ high: 0, medium: 1, low: 2 }[b.priority] ?? 3) ||
+      b.ms - a.ms,
+  );
   const unsub = run.spam.filter((s) => s.action === 'unsubscribed').length;
   const hist = runs.slice(-14);
   const histMax = Math.max(1, ...hist.map((r) => r.spamCount));
 
-  const tile = (label, value, note) => `<div class="tile"><div class="tile-label">${label}</div><div class="tile-value">${value}</div><div class="tile-note">${note}</div></div>`;
+  const tile = (label, value, note) =>
+    `<div class="tile"><div class="tile-label">${label}</div><div class="tile-value">${value}</div><div class="tile-note">${note}</div></div>`;
 
-  const dueRows = due.map((d) => {
-    const n = daysUntil(d.due_date, today);
-    const tone = n < 0 ? 'overdue' : n <= 2 ? 'soon' : '';
-    return `<li class="due ${tone}">
+  const dueRows =
+    due
+      .map((d) => {
+        const n = daysUntil(d.due_date, today);
+        const tone = n < 0 ? 'overdue' : n <= 2 ? 'soon' : '';
+        return `<li class="due ${tone}">
       <div class="due-date"><strong>${esc(fmtDate(d.due_date))}</strong><span>${esc(whenLabel(n))}</span></div>
       <div class="due-body"><div class="due-action">${esc(d.action || d.summary)}</div>
       <div class="meta">${esc(sender(d.from))} · <a href="${gmailLink(d.id)}" target="_blank" rel="noopener noreferrer">${esc(d.subject)}</a></div></div></li>`;
-  }).join('') || '<li class="empty">No due dates found.</li>';
+      })
+      .join('') || '<li class="empty">No due dates found.</li>';
 
-  const cards = important.map((m) => `<article class="card p-${esc(m.priority)}">
+  const cards =
+    important
+      .map(
+        (m) => `<article class="card p-${esc(m.priority)}">
       <div class="card-top">${m.isNew ? '<span class="pill new">New</span>' : ''}<span class="pill">${esc(m.category)}</span><span class="prio">${esc(m.priority)}</span>${m.due_date ? `<span class="pill due-pill">Due ${esc(fmtDate(m.due_date))}</span>` : ''}</div>
       <h3><a href="${gmailLink(m.id)}" target="_blank" rel="noopener noreferrer">${esc(m.subject)}</a></h3>
       <div class="meta">${esc(sender(m.from))} · ${esc(new Date(m.ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</div>
-      <p>${esc(m.summary)}</p>${m.action ? `<p class="todo">→ ${esc(m.action)}</p>` : ''}</article>`).join('') || '<p class="empty">Nothing important in the last 14 days.</p>';
+      <p>${esc(m.summary)}</p>${m.action ? `<p class="todo">→ ${esc(m.action)}</p>` : ''}</article>`,
+      )
+      .join('') || '<p class="empty">Nothing important in the last 14 days.</p>';
 
-  const spamRows = run.spam.map((s) => {
-    const [label, tone] = ACTION[s.action] || [s.action, 'muted'];
-    return `<tr><td>${esc(sender(s.from))}<div class="meta">${esc(s.domain)}</div></td><td>${esc(s.subject)}</td><td><span class="tag ${tone}">${esc(label)}</span></td><td class="meta">${esc(s.reason)}</td></tr>`;
-  }).join('');
+  const spamRows = run.spam
+    .map((s) => {
+      const [label, tone] = ACTION[s.action] || [s.action, 'muted'];
+      return `<tr><td>${esc(sender(s.from))}<div class="meta">${esc(s.domain)}</div></td><td>${esc(s.subject)}</td><td><span class="tag ${tone}">${esc(label)}</span></td><td class="meta">${esc(s.reason)}</td></tr>`;
+    })
+    .join('');
 
-  const bars = hist.map((r) => `<div class="bar" title="${esc(localDate(r.at))}: ${r.spamCount} spam, ${r.importantCount} important">
-      <div class="bar-fill" style="height:${Math.round((r.spamCount / histMax) * 100)}%"></div><span>${esc(new Date(r.at).getDate())}</span></div>`).join('');
+  const bars = hist
+    .map(
+      (r) => `<div class="bar" title="${esc(localDate(r.at))}: ${r.spamCount} spam, ${r.importantCount} important">
+      <div class="bar-fill" style="height:${Math.round((r.spamCount / histMax) * 100)}%"></div><span>${esc(new Date(r.at).getDate())}</span></div>`,
+    )
+    .join('');
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
