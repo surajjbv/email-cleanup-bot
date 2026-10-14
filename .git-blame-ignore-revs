@@ -1,0 +1,3 @@
+# Bulk formatting commits, skipped by git blame (git config blame.ignoreRevsFile .git-blame-ignore-revs)
+# biome format
+bcddbf3eaeb34ca60bb50d9eb040fb353743439f
