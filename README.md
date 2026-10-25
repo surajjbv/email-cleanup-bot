@@ -74,7 +74,7 @@ login stays in `.env` and the summaries in `data/` on your Mac. The AI runs on t
   one POST per domain, move spam to Trash, write `data/dashboard.html` (no scripts, CSP, all text escaped).
 - **The model** is shared with the other bots through a lease protocol (`kit.js`); if it can't be had, the run exits
   75 and is retried.
-- **Scheduling:** launchd runs `node kit.js tick` every 5 min (once per slot, 10 min after wake, retries, 10 h limit).
+- **Scheduling:** launchd runs `node kit.js tick` every 5 min (once per slot, 10 min after wake, retries, catches up a missed slot until the next one).
 
 ```
 bot.js            the run: collect → decide → act
